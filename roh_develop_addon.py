@@ -165,8 +165,8 @@ def arms_init(arm_ips:list[str], arm_port:int=8080,robots:list[RoboticArm]=[]):
         
     for arm,ip in zip(robots,arm_ips):
         handle = arm.rm_create_robot_arm(ip, arm_port)
-        arm.rm_close_modbustcp_mode()
-        arm.rm_set_modbus_mode(COM_PORT,115200,1)
+        # arm.rm_close_modbustcp_mode()
+        # arm.rm_set_modbus_mode(COM_PORT,115200,1)
         
         
     return robots
@@ -180,19 +180,22 @@ def disconnect(robots:list[RoboticArm]):
     for arm in robots:
         arm.rm_delete_robot_arm()
 if __name__ == "__main__":
-    arm_r,arm_l = arms_init([R_ARM_IP, L_ARM_IP])
-    
+    arm_r,arm_l = arms_init([R_ARM_IP, L_ARM_IP])    
     def Arm_move(Arm:RoboticArm):
         # move the arm to the position
-        Arm.rm_movec([0,0,0,0,0,0], 30, 0, True)
+        #Arm.rm_movec([0,0,0,0,0,0], 30, 0, True)
         # move the arm to the position
-        Arm.rm_movej([0,20,30,0,0,0], 30, 0, True)
+        Arm.rm_movej([0,20,30,0,0,0], 30, 0, True,False)
         # move the arm to the position
-        Arm.rm_movej_p([40,0,0,0,0,0], 30, 0, True)
+        # Arm.rm_movej_p([40,0,0,0,0,0], 30, 0, True)
     # use different thread to control the arms.
-    threading.Thread(target=Arm_move,args=(arm_r,)).start()
-    threading.Thread(target=Arm_move,args=(arm_l,)).start()
-    
+    # threading.Thread(target=Arm_move,args=(arm_r,)).start()
+    # threading.Thread(target=Arm_move,args=(arm_l,)).start()
+    arm_r.rm_movej([0,0,0,0,0,0], 30, 0, False,False)
+    arm_l.rm_movej([0,0,0,0,0,0], 30, 0, False,False)
+    arm_r.rm_movej([40,20,30,0,0,0], 30, 0, False,False)
+    arm_l.rm_movej([40,20,30,0,0,0], 30, 0, False,False)
+
     
 
     # robot.rm_movej(position, speed, rad, wait,True)
