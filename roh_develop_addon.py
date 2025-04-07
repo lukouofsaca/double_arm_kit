@@ -13,6 +13,13 @@ ROH_ADDR = 2
 RIGHT_HAND = 0
 LEFT_HAND = 1
 
+SHORT_MAX = 65535
+
+ANGLE_THUMB_MAX = 90
+ANGLE_SIDE_MAX = 31
+ANGLE_HAND_MAX = 50
+ANGLE_MAX = 180
+
 # the following parameters are used to calculate the position of the object.
 # which are in the original demo file provided by oymotion.
 TABLE_HEIGHT = 0.72 #桌面高度/m
@@ -89,13 +96,21 @@ def register_write(robot,data,target=ROH_FINGER_POS_TARGET0, delay=0, num=None, 
     """
     if not warpped:
         data,_ = warp_bit(data)
-    num = len(data) // 2 
+    if num is None:
+        num = len(data) // 2 
 
     params = create_hand_register_params_t(target=target, total_register_number=num)
     ret = robot.rm_write_registers(params, data)
-    print(f"status {ret} ")
+    
     if delay > 0:
         time.sleep(delay)
+    return ret
+
+# we defie the hand_control_b as the register_write function.
+# Facutally you can use the same as you use hand_control_p/a as you may don't like to pass all the positions
+#   to the function. Hence you can alternativeli pass target/num to the functions.
+
+hand_control_b = register_write
 
 def extract_data(data):
     """byte to short.
@@ -179,6 +194,73 @@ def disconnect(robots:list[RoboticArm]):
     """
     for arm in robots:
         arm.rm_delete_robot_arm()
+
+## put this outside, so anyone won't pass 6 params could use this function to convert to percent.
+def precent_to_short(x):
+    percent = x/100*65535
+    if percent > 65535:
+        percent = 65535
+    elif percent < 0:
+        percent = 0
+    return round(percent)
+
+def angle_to_short(x):
+    percent = x/ANGLE_MAX*65535
+    if percent > 65535:
+        ## need to log the error.
+        percent = 65535
+    elif percent < 0:
+        percent = 0
+    return round(percent)
+
+def hand_control_p(robot: RoboticArm,position,target=ROH_FINGER_POS_TARGET0, delay=0, num=None, warpped = False):
+    """move the hand to the position.
+
+    Args:
+        robot (RoboticArm): robotic arm to be moved.
+        position (list[float]): position of the hand. percent(0-100)
+        other params defines same as hand_control_b
+
+    """
+    position = [precent_to_short(x) for x in position]
+    return register_write(robot,position,target,delay,num,warpped)
+
+
+def hand_control_a(robot: RoboticArm,angle:list[float],angle_thumb=None,angle_side=None,angle_hand=None
+                    ,target=ROH_FINGER_POS_TARGET0, delay=0, num=None, warpped = False):
+    """move the hand to the position.
+
+    Args:
+        robot (RoboticArm): robotic arm to be moved.
+        angles (list[float]): angles of the hand. degree(0-180) please note that only the first 5 params
+            should be passed to this param if you need to use every degree of freedom.
+        angle_thumb (float, optional): angle of thumb(0-90). Defaults to None.
+        angle_side (float, optional): angle of side(31-0). Defaults to None.
+        angle_hand (float, optional): angle of hand(0-50). Defaults to None.
+        other params defines same as hand_control_b
+        
+        to convert different angles of thumb_turn:
+        angle_thumb=0 == angle_side=31 = angle_hand=0
+        angle_thumb=90 == angle_side=0 = angle_hand=50    
+        priority of the angle is thumb > side > hand.
+    
+    """
+    # use angle_turn to log the angle of the thumb turn.
+    angle_turn = None
+    if angle_thumb is not None:
+        angle_turn = angle_thumb/ANGLE_THUMB_MAX*ANGLE_MAX
+    elif angle_side is not None:
+        angle_turn = (ANGLE_SIDE_MAX-angle_side)/ANGLE_SIDE_MAX*ANGLE_MAX
+    elif angle_hand is not None:
+        angle_turn = angle_hand/ANGLE_HAND_MAX*ANGLE_MAX
+    if angle_turn is not None:
+        angle.append(angle_turn)        
+    
+    position = [angle_to_short(x) for x in position]
+    
+    return register_write(robot,position,target=ROH_FINGER_POS_TARGET0, delay=delay, num=num, warpped=warpped)
+    
+
 if __name__ == "__main__":
     arm_r,arm_l = arms_init([R_ARM_IP, L_ARM_IP])    
     def Arm_move(Arm:RoboticArm):
