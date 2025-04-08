@@ -26,6 +26,7 @@ def Arm_move_l(Arm):
     print("try something")
     if(block==0):
         Arm.rm_movej([0,0,10,10,0,0], 30, 0, False,False)
+        print("tried something")  
     ret = Arm.rm_movej([0,0,0,0,0,0], 30, 0, False,True)
     
 

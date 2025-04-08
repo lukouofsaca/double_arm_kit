@@ -155,6 +155,33 @@ def register_read_holding(robot: RoboticArm,target=ROH_FINGER_FORCE_LIMIT0,num: 
         logging.log(level=logging.ERROR,msg=f"error status {status} for hand")
     return status,data
 
+def register_read_input(robot: RoboticArm,target=ROH_CALI_THUMB_POS0,num: int=1):
+    """
+    read registers.
+
+    Args:
+        robot (RoboticArm): robot_hand to be read
+        target (REGISTER, optional): . Defaults to ROH_FINGER_FORCE_LIMIT0.
+        num (int, optional): num to read. Defaults to 1.
+
+    Returns:
+        status: read status
+        data: read data
+    """
+    assert num <= 12
+    params = create_hand_register_params_t(target=target,total_register_number=num)
+    if num==1:
+        status,data = robot.rm_read_input_registers(params)
+        data = [data]
+    else:
+        status,data = robot.rm_read_multiple_input_registers(params)
+        data = extract_data(data)
+    if status != 0:
+        logging.log(level=logging.ERROR,msg=f"error status {status} for hand")
+    return status,data
+
+
+
 def arms_init(arm_ips:list[str], arm_port:int=8080,robots:list[RoboticArm]=[]):
     """get/connect hands.
 
@@ -180,8 +207,8 @@ def arms_init(arm_ips:list[str], arm_port:int=8080,robots:list[RoboticArm]=[]):
         
     for arm,ip in zip(robots,arm_ips):
         handle = arm.rm_create_robot_arm(ip, arm_port)
-        # arm.rm_close_modbustcp_mode()
-        # arm.rm_set_modbus_mode(COM_PORT,115200,1)
+        arm.rm_close_modbustcp_mode()
+        arm.rm_set_modbus_mode(COM_PORT,115200,1)
         
         
     return robots
